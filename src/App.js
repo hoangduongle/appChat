@@ -6,14 +6,22 @@ import {
   BrowserRouter,
   Routes,
 } from 'react-router-dom';
-
+import AuthProvider from './components/Context/AuthProvider';
+import AppProvider from './components/Context/AppProvider';
+import AddRoomModal from './components/Modals/AddRoomModal';
 function App() {
   return (
     <BrowserRouter>
-      <Routes >
-        <Route element={<Login />} path="/login" />
-        <Route element={<ChatRoom />} path="/" />
-      </Routes>
+      <AuthProvider>
+        <AppProvider>
+          <Routes >
+            <Route element={<Login />} path="/login" />
+            <Route element={<ChatRoom />} path="/" />
+          </Routes>
+          <AddRoomModal />
+        </AppProvider>
+      </AuthProvider>
+
     </BrowserRouter>
   );
 }
