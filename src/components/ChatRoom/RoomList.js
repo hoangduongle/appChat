@@ -30,17 +30,16 @@ const LinkStyled = styled(Typography.Link)`
 
 export default function RoomList() {
 
-    const { rooms, setIsAddRoomModalOpen } = React.useContext(AppContext);
-
+    const { rooms, setIsAddRoomModalOpen, setSelectedRoomId } = React.useContext(AppContext);
     const handleOpen = () => {
         setIsAddRoomModalOpen(true);
     }
-
+    
     return (
         <Collapse ghost defaultActiveKey={'1'}>
             <PanelStyled header="Danh sách các phòng" key='1'>
                 {rooms.map((room) => (
-                    <LinkStyled key={room.id}>{room.name}</LinkStyled>
+                    <LinkStyled key={room.stringId} onClick={() => setSelectedRoomId(room.stringId)} >{room.name}</LinkStyled>
                 ))}
                 <Button type='text' icon={<PlusSquareOutlined />} className='add-room' onClick={handleOpen}>Add Room</Button>
             </PanelStyled>

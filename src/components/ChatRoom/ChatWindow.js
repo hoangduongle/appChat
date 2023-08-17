@@ -1,8 +1,13 @@
-import { Avatar, Button, Form, Input, Tooltip } from 'antd';
-import React from 'react'
+import { Alert, Avatar, Button, Form, Input, Tooltip } from 'antd';
+import React, { useContext, useMemo, useState } from 'react'
 import { styled } from 'styled-components'
 import { UserAddOutlined } from '@ant-design/icons';
 import Message from './Message';
+import { AppContext } from '../Context/AppProvider';
+import { addDocument } from '../../firebase/services';
+import { AuthContext } from '../Context/AuthProvider';
+import { useForm } from 'antd/es/form/Form';
+import { useFirestore } from '../../hooks/useFirestore';
 
 const WrapperStyled = styled.div`
   height: 100vh;
@@ -60,46 +65,74 @@ overflow-y: auto;
 `;
 
 export default function ChatWindow() {
+
+  const { selectedRoom, members, setInviteMemberModalOpen } = useContext(AppContext);
+  const [inputValue, setInputValue] = useState('');
+  const { uid, photoURL, displayName } = useContext(AuthContext);
+
+  const [form] = useForm();
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+  }
+
+  const handleOnSubmit = () => {
+    addDocument('messages', {
+      text: inputValue,
+      uid: uid,
+      photoURL: photoURL,
+      roomId: selectedRoom.stringId,
+      displayName: displayName,
+    });
+    form.resetFields(['message']);
+  }
+
+  const condition = useMemo(() => ({
+    fieldName: 'roomId',
+    operator: '==',
+    compareValue: selectedRoom.stringId,
+  }), [selectedRoom.stringId]);
+  const messages = useFirestore('messages', condition);
   return (
     <WrapperStyled>
-      <HeaderStyled>
-        <div className='header__info'>
-          <p className='header__title'>Room 1</p>
-          <span className='header__description'>Day la room 1</span>
-
-        </div>
-        <div>
-          <Button icon={<UserAddOutlined />} >Invite</Button>
-          <Avatar.Group size='small' maxCount={2}>
-            <Tooltip title="A">
-              <Avatar>A</Avatar>
-            </Tooltip>
-            <Tooltip title="B">
-              <Avatar>B</Avatar>
-            </Tooltip>
-            <Tooltip title="C">
-              <Avatar>C</Avatar>
-            </Tooltip>
-            <Tooltip title="D">
-              <Avatar>D</Avatar>
-            </Tooltip>
-          </Avatar.Group>
-        </div>
-      </HeaderStyled>
-      <ContentStyled>
-        <MessageListStyled>
-          <Message text="a" photoURL={null} displayName="Duong" createdAt="16/8/2023" />
-          <Message text="a" photoURL={null} displayName="Duong" createdAt="16/8/2023" />
-          <Message text="a" photoURL={null} displayName="Duong" createdAt="16/8/2023" />
-          <Message text="a" photoURL={null} displayName="Duong" createdAt="16/8/2023" />
-        </MessageListStyled>
-        <FormStyled>
-          <Form.Item>
-            <Input placeholder='Enter your message...' autoComplete='off' bordered={false} />
-          </Form.Item>
-          <Button>Send</Button>
-        </FormStyled>
-      </ContentStyled>
+      {selectedRoom ? (<>
+        <HeaderStyled>
+          <div className='header__info'>
+            <p className='header__title'>{selectedRoom.name}</p>
+            <span className='header__description'>{selectedRoom.description}</span>
+          </div>
+          <div>
+            <Button icon={<UserAddOutlined />} onClick={() => setInviteMemberModalOpen(true)} >Invite</Button>
+            <Avatar.Group size='small' maxCount={2}>
+              {members.map(member =>
+                <Tooltip key={member.uid} title={member.displayName}>
+                  <Avatar src={member.photoURL}>{member.photoURL ? "" : member.displayName?.charAt(0)?.toUpperCase}</Avatar>
+                </Tooltip>)}
+            </Avatar.Group>
+          </div>
+        </HeaderStyled>
+        <ContentStyled>
+          <MessageListStyled>
+            {messages.map(message =>
+              <Message
+                key={message.id}
+                text={message.text}
+                photoURL={message.photoURL}
+                displayName={message.displayName}
+                createdAt={message.createdAt} />)}
+          </MessageListStyled>
+          <Form form={form}>
+            <FormStyled>
+              <Form.Item name='message'>
+                <Input
+                  onChange={handleInputChange}
+                  onPressEnter={handleOnSubmit}
+                  placeholder='Enter your message...' autoComplete='off' bordered={false} />
+              </Form.Item>
+              <Button type='primary' onClick={handleOnSubmit} >Send</Button>
+            </FormStyled>
+          </Form>
+        </ContentStyled>
+      </>) : Alert("Please select a room", "info")}
     </WrapperStyled>
   )
 }
